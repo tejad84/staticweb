@@ -1,0 +1,104 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+
+  "parameters": {
+    "storageAccountName": {
+      "type": "string"
+    },
+    "sku_name": {
+      "type": "string"
+    },
+    "sku_tier": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    },
+    "cdnProfileName": {
+      "type": "string"
+    },
+    "cdnEndpointName": {
+      "type": "string"
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "apiVersion": "2021-08-01",
+      "name": "[parameters('storageAccountName')]",
+      "location": "[parameters('location')]",
+      "kind": "StorageV2",
+      "sku": {
+        "name": "[parameters('sku_name')]",
+        "tier": "[parameters('sku_tier')]"
+      },
+      "properties": {
+        "AllowBlobPublicAccess": true,
+        "supportsHttpsTrafficOnly": true
+      }
+    },
+
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices",
+      "apiVersion": "2021-04-01",
+      "name": "[concat(parameters('storageAccountName'), '/default')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
+      ],
+      "properties": {
+        "cors": {
+          "corsRules": []
+        },
+        "defaultServiceVersion": "2020-06-12"
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+      "apiVersion": "2021-04-01",
+      "name": "[concat(parameters('storageAccountName'), '/default/$web')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts/blobServices', parameters('storageAccountName'), 'default')]"
+      ],
+      "properties": {
+        "publicAccess": "Blob"
+      }
+    },
+
+    {
+      "type": "Microsoft.Cdn/profiles",
+      "apiVersion": "2021-06-01",
+      "name": "[parameters('cdnProfileName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard_Microsoft"
+      },
+      "properties": {}
+    },
+    {
+      "type": "Microsoft.Cdn/profiles/endpoints",
+      "apiVersion": "2021-06-01",
+      "name": "[concat(parameters('cdnProfileName'), '/', parameters('cdnEndpointName'))]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Cdn/profiles', parameters('cdnProfileName'))]"
+      ],
+      "properties": {
+        "originHostHeader": "[concat(parameters('storageAccountName'), '.z22.web.core.windows.net')]",
+        "origins": [
+          {
+            "name": "origin1",
+            "properties": {
+              "hostName": "[concat(parameters('storageAccountName'), '.z22.web.core.windows.net')]",
+              "httpPort": 80,
+              "httpsPort": 443
+            }
+          }
+        ],
+        "isHttpAllowed": true,
+        "isHttpsAllowed": true
+      }
+    }
+  ]
+
+}

@@ -1,0 +1,24 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "storageAccountName": {
+            "value": "#storageAccountName#"
+        },
+        "sku_name": {
+            "value": "#sku_name#"
+        },
+        "sku_tier": {
+            "value": "#sku_tier#"
+        },
+        "location": {
+            "value": "#location#"
+        },
+        "cdnProfileName": {
+            "value": "#cdnProfileName#"
+        },
+        "cdnEndpointName": {
+            "value": "#cdnEndpointName#"
+        }
+    }
+}
