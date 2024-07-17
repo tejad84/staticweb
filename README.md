@@ -11,4 +11,4 @@ Step3: Once build pipeline was successfully ran, then will move to the release p
 
 Step4: Once deployment was done, then we will check in the azure portal, whether it created required resources or not, once we conformed that then we can check the staticwebsite is working properly or not by using Cdn endpoint. 
 
-Overall, I followed above mentioned steps and achieved task.
+Overall, I used yaml file for build pipeline and classic editor for release pipeline and followed above mentioned steps and achieved task.
