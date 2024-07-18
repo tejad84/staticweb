@@ -1,21 +1,78 @@
 trigger:
-- master
+  - master
 
-pool:
-  vmImage: ubuntu-latest
+stages:
+  - stage: Build
+    jobs:
+      - job: Build-infrastructure
 
-steps:
-- task: CopyFiles@2
-  displayName: 'Copy Files to: $(build.artifactstagingdirectory)'
-  inputs:
-    SourceFolder: infrastructure
-    TargetFolder: '$(build.artifactstagingdirectory)'
+        pool:
+          vmImage: ubuntu-latest
 
-- task: CopyFiles@2
-  displayName: 'Copy Files to: $(build.artifactstagingdirectory)'
-  inputs:
-    Contents: index.html
-    TargetFolder: '$(build.artifactstagingdirectory)'
+        steps:
+         - task: CopyFiles@2
+           displayName: "Copy Files to: $(build.artifactstagingdirectory)"
+           inputs:
+             SourceFolder: infrastructure
+             TargetFolder: "$(build.artifactstagingdirectory)"
 
-- task: PublishBuildArtifacts@1
-  displayName: 'Publish Artifact: drop'
+         - task: CopyFiles@2
+           displayName: "Copy Files to: $(build.artifactstagingdirectory)"
+           inputs:
+             Contents: index.html
+             TargetFolder: "$(build.artifactstagingdirectory)"
+
+         - task: PublishBuildArtifacts@1
+           displayName: "Publish Artifact: drop"
+
+  - stage: DeployDev
+    displayName: 'DeployDev'
+    variables:
+         - group: 'static-release-Dev'
+    jobs:
+      - deployment: 
+        pool:
+          vmImage: windows-2019
+        environment: 'Dev'  
+        strategy: 
+         runOnce:
+            deploy:
+             steps:
+               - task: replacetokens@6
+                 inputs:
+                   root: '$(Pipeline.Workspace)/drop'
+                   sources: 'azuredeploy.parameters.json'
+                   tokenPattern: 'custom'
+                   tokenPrefix: '#'
+                   tokenSuffix: '#'
+               - task: AzureResourceManagerTemplateDeployment@3
+                 inputs:
+                   deploymentScope: 'Resource Group'
+                   azureResourceManagerConnection: 'python-api'
+                   subscriptionId: '$(subscriptionId)'
+                   action: 'Create Or Update Resource Group'
+                   resourceGroupName: '$(Resourcegroup)'
+                   location: '$(location)'
+                   templateLocation: 'Linked artifact'
+                   csmFile: '$(Pipeline.Workspace)/drop/azuredeploy.json'
+                   csmParametersFile: '$(Pipeline.Workspace)/drop/azuredeploy.parameters.json'
+                   deploymentMode: 'Incremental'
+               - task: AzureCLI@2
+                 inputs:
+                   azureSubscription: 'python-api'
+                   scriptType: 'ps'
+                   scriptLocation: 'inlineScript'
+                   inlineScript: 'az storage blob service-properties update --account-name $(storageAccountName)  --static-website  --index-document index.html'
+               - task: AzureFileCopy@6
+                 inputs:
+                   SourcePath: '$(Pipeline.Workspace)/drop/index.html'
+                   azureSubscription: 'python-api'
+                   Destination: 'AzureBlob'
+                   storage: '$(storageAccountName)'
+                   ContainerName: '$(ContainerName)'
+               - task: AzureCLI@2
+                 inputs:
+                   azureSubscription: 'python-api'
+                   scriptType: 'ps'
+                   scriptLocation: 'inlineScript'
+                   inlineScript: 'az cdn endpoint purge --resource-group $(Resourcegroup) --profile-name $(cdnProfileName) --name $(cdnEndpointName) --content-paths ["/*"]'
