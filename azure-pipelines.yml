@@ -63,7 +63,7 @@ stages:
                    scriptType: 'ps'
                    scriptLocation: 'inlineScript'
                    inlineScript: 'az storage blob service-properties update --account-name $(storageAccountName)  --static-website  --index-document index.html'
-               - task: AzureFileCopy@6
+               - task: AzureFileCopy@2
                  inputs:
                    SourcePath: '$(Pipeline.Workspace)/drop/index.html'
                    azureSubscription: 'python-api'
